@@ -1,0 +1,34 @@
+name=java-17-openjdk-amd64
+alias=java-1.17.0-openjdk-amd64
+priority=1711
+section=main
+
+hl java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
+hl jpackage /usr/lib/jvm/java-17-openjdk-amd64/bin/jpackage
+hl keytool /usr/lib/jvm/java-17-openjdk-amd64/bin/keytool
+hl rmiregistry /usr/lib/jvm/java-17-openjdk-amd64/bin/rmiregistry
+hl jexec /usr/lib/jvm/java-17-openjdk-amd64/lib/jexec
+jdkhl jar /usr/lib/jvm/java-17-openjdk-amd64/bin/jar
+jdkhl jarsigner /usr/lib/jvm/java-17-openjdk-amd64/bin/jarsigner
+jdkhl javac /usr/lib/jvm/java-17-openjdk-amd64/bin/javac
+jdkhl javadoc /usr/lib/jvm/java-17-openjdk-amd64/bin/javadoc
+jdkhl javap /usr/lib/jvm/java-17-openjdk-amd64/bin/javap
+jdkhl jcmd /usr/lib/jvm/java-17-openjdk-amd64/bin/jcmd
+jdkhl jdb /usr/lib/jvm/java-17-openjdk-amd64/bin/jdb
+jdkhl jdeprscan /usr/lib/jvm/java-17-openjdk-amd64/bin/jdeprscan
+jdkhl jdeps /usr/lib/jvm/java-17-openjdk-amd64/bin/jdeps
+jdkhl jfr /usr/lib/jvm/java-17-openjdk-amd64/bin/jfr
+jdkhl jimage /usr/lib/jvm/java-17-openjdk-amd64/bin/jimage
+jdkhl jinfo /usr/lib/jvm/java-17-openjdk-amd64/bin/jinfo
+jdkhl jlink /usr/lib/jvm/java-17-openjdk-amd64/bin/jlink
+jdkhl jmap /usr/lib/jvm/java-17-openjdk-amd64/bin/jmap
+jdkhl jmod /usr/lib/jvm/java-17-openjdk-amd64/bin/jmod
+jdkhl jps /usr/lib/jvm/java-17-openjdk-amd64/bin/jps
+jdkhl jrunscript /usr/lib/jvm/java-17-openjdk-amd64/bin/jrunscript
+jdkhl jshell /usr/lib/jvm/java-17-openjdk-amd64/bin/jshell
+jdkhl jstack /usr/lib/jvm/java-17-openjdk-amd64/bin/jstack
+jdkhl jstat /usr/lib/jvm/java-17-openjdk-amd64/bin/jstat
+jdkhl jstatd /usr/lib/jvm/java-17-openjdk-amd64/bin/jstatd
+jdkhl serialver /usr/lib/jvm/java-17-openjdk-amd64/bin/serialver
+jdkhl jhsdb /usr/lib/jvm/java-17-openjdk-amd64/bin/jhsdb
+jdk jconsole /usr/lib/jvm/java-17-openjdk-amd64/bin/jconsole
