@@ -1,143 +1,162 @@
 package CurrencyConverter;
 
 import java.util.*;
-import java.text.DecimalFormat;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 public class CurrencyConverter {
-   public static void main(String[] args) {
-      double amount;
-      double rupee, dollar, pound, euro, yen, ringgit;
-      int choice;
 
-      DecimalFormat f = new DecimalFormat("##.##");
+    // Exchange rates relative to USD
+    private static final Map<String, Double> RATES_TO_USD = new LinkedHashMap<>();
 
-      Scanner sc = new Scanner(System.in);
+    static {
+        RATES_TO_USD.put("Rupee", 1.0 / 70.0);
+        RATES_TO_USD.put("Dollar", 1.0);
+        RATES_TO_USD.put("Pound", 1.0 / 0.78);
+        RATES_TO_USD.put("Euro", 1.0 / 0.87);
+        RATES_TO_USD.put("Yen", 1.0 / 111.087);
+        RATES_TO_USD.put("Ringgit", 1.0 / 4.17);
+    }
 
-      try {
-         System.out.println("Following are the Choices:");
-         System.out.println("Enter 1: Ruppe");
-         System.out.println("Enter 2: Dollar");
-         System.out.println("Enter 3: Pound");
-         System.out.println("Enter 4: Euro");
-         System.out.println("Enter 5: Yen");
-         System.out.println("Enter 5: Ringgit");
+    private static final String[] CURRENCY_NAMES = {
+        "Rupee", "Dollar", "Pound", "Euro", "Yen", "Ringgit"
+    };
 
-         System.out.print("\nChoose from above options: ");
-         choice = sc.nextInt();
+    /**
+     * Convert an amount from one currency to another.
+     *
+     * @param amount the amount to convert (must be > 0)
+     * @param fromIndex source currency index (0-5)
+     * @param toIndex target currency index (0-5)
+     * @return converted amount rounded to 2 decimal places
+     */
+    public static double convert(double amount, int fromIndex, int toIndex) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
+        if (fromIndex < 0 || fromIndex >= CURRENCY_NAMES.length) {
+            throw new IllegalArgumentException("Invalid source currency index: " + fromIndex);
+        }
+        if (toIndex < 0 || toIndex >= CURRENCY_NAMES.length) {
+            throw new IllegalArgumentException("Invalid target currency index: " + toIndex);
+        }
 
-         System.out.println("Enter the amount you want to convert?");
-         amount = sc.nextFloat();
+        String fromCurrency = CURRENCY_NAMES[fromIndex];
+        String toCurrency = CURRENCY_NAMES[toIndex];
 
-         switch (choice) {
-            case 1: // Ruppe Conversion
-               dollar = amount / 70;
-               System.out.println(amount + " Rupee = " + f.format(dollar) + " Dollar");
+        // Convert to USD first, then to target currency
+        double amountInUsd = amount * RATES_TO_USD.get(fromCurrency);
+        double result = amountInUsd / RATES_TO_USD.get(toCurrency);
 
-               pound = amount / 88;
-               System.out.println(amount + " Rupee = " + f.format(pound) + " Pound");
+        return BigDecimal.valueOf(result).setScale(2, RoundingMode.HALF_UP).doubleValue();
+    }
 
-               euro = amount / 80;
-               System.out.println(amount + " Rupee = " + f.format(euro) + " Euro");
+    /**
+     * Get the display name for a currency by index.
+     */
+    public static String getCurrencyName(int index) {
+        if (index < 0 || index >= CURRENCY_NAMES.length) {
+            throw new IllegalArgumentException("Invalid currency index: " + index);
+        }
+        return CURRENCY_NAMES[index];
+    }
 
-               yen = amount / 0.63;
-               System.out.println(amount + " Rupee = " + f.format(yen) + " Yen");
+    /**
+     * Check if a choice is valid (1-6).
+     */
+    public static boolean isValidChoice(int choice) {
+        return choice >= 1 && choice <= CURRENCY_NAMES.length;
+    }
 
-               ringgit = amount / 16;
-               System.out.println(amount + " Rupee = " + f.format(ringgit) + " ringgit");
-               break;
+    /**
+     * Format an amount to 2 decimal places.
+     */
+    public static String formatAmount(double amount) {
+        return BigDecimal.valueOf(amount).setScale(2, RoundingMode.HALF_UP).toPlainString();
+    }
 
-            case 2: // Dollar Conversion
-               rupee = amount * 70;
-               System.out.println(amount + " Dollar = " + f.format(rupee) + " Ruppes");
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
 
-               pound = amount * 0.78;
-               System.out.println(amount + " Dollar = " + f.format(pound) + " Pound");
+        try {
+            System.out.println("=== Currency Converter ===");
+            System.out.println("Following are the choices:");
+            for (int i = 0; i < CURRENCY_NAMES.length; i++) {
+                System.out.println("Enter " + (i + 1) + ": " + CURRENCY_NAMES[i]);
+            }
 
-               euro = amount * 0.87;
-               System.out.println(amount + " Dollar = " + f.format(euro) + " Euro");
+            // Read and validate choice
+            int choice = readChoice(sc);
+            if (choice == -1) {
+                return; // user chose to exit
+            }
 
-               yen = amount * 111.087;
-               System.out.println(amount + " Dollar = " + f.format(yen) + " Yen");
+            // Read and validate amount
+            double amount = readAmount(sc);
+            if (amount == -1) {
+                return; // user chose to exit
+            }
 
-               ringgit = amount * 4.17;
-               System.out.println(amount + " Dollar = " + f.format(ringgit) + " ringgit");
-               break;
+            // Perform conversions
+            String fromCurrency = getCurrencyName(choice - 1);
+            System.out.println("\n--- Conversion Results ---");
+            System.out.println("Converting " + formatAmount(amount) + " " + fromCurrency + " to:");
+            System.out.println();
 
-            case 3: // Pound Conversion
-               rupee = amount * 88;
-               System.out.println(amount + " pound = " + f.format(rupee) + " Ruppes");
+            for (int i = 0; i < CURRENCY_NAMES.length; i++) {
+                if (i == choice - 1) {
+                    continue; // skip self-conversion
+                }
+                double converted = convert(amount, choice - 1, i);
+                System.out.println("  " + formatAmount(amount) + " " + fromCurrency
+                        + " = " + formatAmount(converted) + " " + CURRENCY_NAMES[i]);
+            }
 
-               dollar = amount * 1.26;
-               System.out.println(amount + " pound = " + f.format(dollar) + " Dollar");
+        } finally {
+            sc.close();
+        }
+    }
 
-               euro = amount * 1.10;
-               System.out.println(amount + " pound = " + f.format(euro) + " Euro");
+    private static int readChoice(Scanner sc) {
+        while (true) {
+            System.out.print("\nChoose from above options (1-" + CURRENCY_NAMES.length + "), or 0 to exit: ");
+            String input = sc.nextLine().trim();
 
-               yen = amount * 140.93;
-               System.out.println(amount + " pound = " + f.format(yen) + " Yen");
+            try {
+                int choice = Integer.parseInt(input);
+                if (choice == 0) {
+                    System.out.println("Exiting. Goodbye!");
+                    return -1;
+                }
+                if (isValidChoice(choice)) {
+                    return choice;
+                }
+                System.out.println("Invalid choice. Please enter a number between 1 and " + CURRENCY_NAMES.length + ".");
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a valid number.");
+            }
+        }
+    }
 
-               ringgit = amount * 5.29;
-               System.out.println(amount + " pound = " + f.format(ringgit) + " ringgit");
-               break;
+    private static double readAmount(Scanner sc) {
+        while (true) {
+            System.out.print("Enter the amount you want to convert (or 0 to exit): ");
+            String input = sc.nextLine().trim();
 
-            case 4: // Euro Conversion
-               rupee = amount * 80;
-               System.out.println(amount + " euro = " + f.format(rupee) + " Ruppes");
-
-               dollar = amount * 1.14;
-               System.out.println(amount + " euro = " + f.format(dollar) + " Dollar");
-
-               pound = amount * 0.90;
-               System.out.println(amount + " euro = " + f.format(pound) + " Pound");
-
-               yen = amount * 127.32;
-               System.out.println(amount + " euro = " + f.format(yen) + " Yen");
-
-               ringgit = amount * 4.78;
-               System.out.println(amount + " euro = " + f.format(ringgit) + " ringgit");
-               break;
-
-            case 5: // Yen Conversion
-               rupee = amount * 0.63;
-               System.out.println(amount + " yen = " + f.format(rupee) + " Ruppes");
-
-               dollar = amount * 0.008;
-               System.out.println(amount + " yen = " + f.format(dollar) + " Dollar");
-
-               pound = amount * 0.007;
-               System.out.println(amount + " yen = " + f.format(pound) + " Pound");
-
-               euro = amount * 0.007;
-               System.out.println(amount + " yen = " + f.format(euro) + " Euro");
-
-               ringgit = amount * 0.037;
-               System.out.println(amount + " yen = " + f.format(ringgit) + " ringgit");
-               break;
-
-            case 6: // Ringgit Conversion
-               rupee = amount * 16.8;
-               System.out.println(amount + " ringgit = " + f.format(rupee) + " Ruppes");
-
-               dollar = amount * 0.239;
-               System.out.println(amount + " ringgit = " + f.format(dollar) + " dollar");
-
-               pound = amount * 0.188;
-               System.out.println(amount + " ringgit =: " + f.format(pound) + " pound");
-
-               euro = amount * 0.209;
-               System.out.println(amount + " ringgit = " + f.format(euro) + " euro");
-
-               yen = amount * 26.63;
-               System.out.println(amount + " ringgit = " + f.format(yen) + " yen");
-               break;
-
-            // Default case
-            default:
-               System.out.println("Invalid Input");
-         }
-      } finally {
-         // Ensure that the scanner is closed to prevent resource leaks
-         sc.close();
-      }
-   }
+            try {
+                double amount = Double.parseDouble(input);
+                if (amount == 0) {
+                    System.out.println("Exiting. Goodbye!");
+                    return -1;
+                }
+                if (amount < 0) {
+                    System.out.println("Amount cannot be negative. Please enter a positive number.");
+                    continue;
+                }
+                return amount;
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a valid number.");
+            }
+        }
+    }
 }
