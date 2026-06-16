@@ -1,143 +1,213 @@
 package CurrencyConverter;
 
-import java.util.*;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
+import java.util.Scanner;
 
+/**
+ * Simple command-line currency converter.
+ *
+ * <p>All exchange rates are expressed against a single base currency (Rupee).
+ * Every conversion is derived from that single source of truth, which keeps the
+ * rates internally consistent (A-&gt;B and B-&gt;A are reciprocals) and removes the
+ * copy/paste errors that come with hand-writing each pairwise rate.
+ */
 public class CurrencyConverter {
-   public static void main(String[] args) {
-      double amount;
-      double rupee, dollar, pound, euro, yen, ringgit;
-      int choice;
 
-      DecimalFormat f = new DecimalFormat("##.##");
+    /** Choice number that exits the interactive loop. */
+    public static final int EXIT_CHOICE = 0;
 
-      Scanner sc = new Scanner(System.in);
+    /**
+     * Supported currencies and their value expressed in the base currency (Rupee).
+     *
+     * <p>Example: {@code DOLLAR} has a rate of {@code 70.0}, meaning 1 Dollar = 70 Rupee.
+     */
+    public enum Currency {
+        RUPEE("Rupee", 1.0),
+        DOLLAR("Dollar", 70.0),
+        POUND("Pound", 88.0),
+        EURO("Euro", 80.0),
+        YEN("Yen", 0.63),
+        RINGGIT("Ringgit", 16.8);
 
-      try {
-         System.out.println("Following are the Choices:");
-         System.out.println("Enter 1: Ruppe");
-         System.out.println("Enter 2: Dollar");
-         System.out.println("Enter 3: Pound");
-         System.out.println("Enter 4: Euro");
-         System.out.println("Enter 5: Yen");
-         System.out.println("Enter 5: Ringgit");
+        private final String displayName;
+        private final double rateInBase;
 
-         System.out.print("\nChoose from above options: ");
-         choice = sc.nextInt();
+        Currency(String displayName, double rateInBase) {
+            this.displayName = displayName;
+            this.rateInBase = rateInBase;
+        }
 
-         System.out.println("Enter the amount you want to convert?");
-         amount = sc.nextFloat();
+        public String getDisplayName() {
+            return displayName;
+        }
 
-         switch (choice) {
-            case 1: // Ruppe Conversion
-               dollar = amount / 70;
-               System.out.println(amount + " Rupee = " + f.format(dollar) + " Dollar");
+        public double getRateInBase() {
+            return rateInBase;
+        }
+    }
 
-               pound = amount / 88;
-               System.out.println(amount + " Rupee = " + f.format(pound) + " Pound");
+    // DecimalFormat is not thread-safe, but this CLI is single-threaded.
+    // US symbols keep the output (and tests) deterministic regardless of the
+    // default locale.
+    private static final DecimalFormat MONEY_FORMAT =
+            new DecimalFormat("#,##0.00", new DecimalFormatSymbols(Locale.US));
 
-               euro = amount / 80;
-               System.out.println(amount + " Rupee = " + f.format(euro) + " Euro");
+    /**
+     * Converts {@code amount} of {@code from} into {@code to}.
+     *
+     * @throws IllegalArgumentException if a currency is null or the amount is not a
+     *                                  positive, finite number.
+     */
+    public static double convert(Currency from, Currency to, double amount) {
+        if (from == null || to == null) {
+            throw new IllegalArgumentException("Currency must not be null");
+        }
+        if (Double.isNaN(amount) || Double.isInfinite(amount)) {
+            throw new IllegalArgumentException("Amount must be a finite number");
+        }
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
+        }
+        return amount * (from.getRateInBase() / to.getRateInBase());
+    }
 
-               yen = amount / 0.63;
-               System.out.println(amount + " Rupee = " + f.format(yen) + " Yen");
+    /** Formats a monetary value with a stable, two-decimal pattern. */
+    public static String format(double value) {
+        return MONEY_FORMAT.format(value);
+    }
 
-               ringgit = amount / 16;
-               System.out.println(amount + " Rupee = " + f.format(ringgit) + " ringgit");
-               break;
+    /**
+     * Parses a menu choice. Accepts the exit choice ({@value #EXIT_CHOICE}) and
+     * any valid currency choice.
+     *
+     * @throws IllegalArgumentException if the text is not an integer in range.
+     */
+    public static int parseChoice(String input) {
+        if (input == null) {
+            throw new IllegalArgumentException("Choice must not be empty");
+        }
+        int choice;
+        try {
+            choice = Integer.parseInt(input.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Choice must be a whole number", e);
+        }
+        if (choice != EXIT_CHOICE && (choice < 1 || choice > Currency.values().length)) {
+            throw new IllegalArgumentException(
+                    "Choice must be between " + EXIT_CHOICE + " and " + Currency.values().length);
+        }
+        return choice;
+    }
 
-            case 2: // Dollar Conversion
-               rupee = amount * 70;
-               System.out.println(amount + " Dollar = " + f.format(rupee) + " Ruppes");
+    /**
+     * Parses a positive monetary amount.
+     *
+     * @throws IllegalArgumentException if the text is not a positive, finite number.
+     */
+    public static double parseAmount(String input) {
+        if (input == null) {
+            throw new IllegalArgumentException("Amount must not be empty");
+        }
+        double amount;
+        try {
+            amount = Double.parseDouble(input.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Amount must be a number", e);
+        }
+        if (Double.isNaN(amount) || Double.isInfinite(amount)) {
+            throw new IllegalArgumentException("Amount must be a finite number");
+        }
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
+        }
+        return amount;
+    }
 
-               pound = amount * 0.78;
-               System.out.println(amount + " Dollar = " + f.format(pound) + " Pound");
+    /**
+     * Maps a 1-based menu choice to a {@link Currency}.
+     *
+     * @throws IllegalArgumentException if the choice is not a valid currency number.
+     */
+    public static Currency currencyForChoice(int choice) {
+        Currency[] values = Currency.values();
+        if (choice < 1 || choice > values.length) {
+            throw new IllegalArgumentException("No currency for choice " + choice);
+        }
+        return values[choice - 1];
+    }
 
-               euro = amount * 0.87;
-               System.out.println(amount + " Dollar = " + f.format(euro) + " Euro");
+    private static void printMenu() {
+        System.out.println("\nFollowing are the choices:");
+        Currency[] values = Currency.values();
+        for (int i = 0; i < values.length; i++) {
+            System.out.println("Enter " + (i + 1) + ": " + values[i].getDisplayName());
+        }
+        System.out.println("Enter " + EXIT_CHOICE + ": Exit");
+    }
 
-               yen = amount * 111.087;
-               System.out.println(amount + " Dollar = " + f.format(yen) + " Yen");
+    private static int readChoice(Scanner sc) {
+        while (true) {
+            System.out.print("\nChoose from above options: ");
+            if (!sc.hasNextLine()) {
+                return EXIT_CHOICE; // No more input (e.g. EOF) -> exit cleanly.
+            }
+            try {
+                return parseChoice(sc.nextLine());
+            } catch (IllegalArgumentException e) {
+                System.out.println("Invalid choice: " + e.getMessage() + ". Please try again.");
+            }
+        }
+    }
 
-               ringgit = amount * 4.17;
-               System.out.println(amount + " Dollar = " + f.format(ringgit) + " ringgit");
-               break;
+    private static double readAmount(Scanner sc) {
+        while (true) {
+            System.out.print("Enter the amount you want to convert: ");
+            if (!sc.hasNextLine()) {
+                throw new NoMoreInputException();
+            }
+            try {
+                return parseAmount(sc.nextLine());
+            } catch (IllegalArgumentException e) {
+                System.out.println("Invalid amount: " + e.getMessage() + ". Please try again.");
+            }
+        }
+    }
 
-            case 3: // Pound Conversion
-               rupee = amount * 88;
-               System.out.println(amount + " pound = " + f.format(rupee) + " Ruppes");
+    private static void printConversions(Currency from, double amount) {
+        for (Currency to : Currency.values()) {
+            if (to == from) {
+                continue;
+            }
+            double result = convert(from, to, amount);
+            System.out.println(format(amount) + " " + from.getDisplayName()
+                    + " = " + format(result) + " " + to.getDisplayName());
+        }
+    }
 
-               dollar = amount * 1.26;
-               System.out.println(amount + " pound = " + f.format(dollar) + " Dollar");
+    /** Signals that the input stream ended while more input was expected. */
+    private static final class NoMoreInputException extends RuntimeException {
+    }
 
-               euro = amount * 1.10;
-               System.out.println(amount + " pound = " + f.format(euro) + " Euro");
-
-               yen = amount * 140.93;
-               System.out.println(amount + " pound = " + f.format(yen) + " Yen");
-
-               ringgit = amount * 5.29;
-               System.out.println(amount + " pound = " + f.format(ringgit) + " ringgit");
-               break;
-
-            case 4: // Euro Conversion
-               rupee = amount * 80;
-               System.out.println(amount + " euro = " + f.format(rupee) + " Ruppes");
-
-               dollar = amount * 1.14;
-               System.out.println(amount + " euro = " + f.format(dollar) + " Dollar");
-
-               pound = amount * 0.90;
-               System.out.println(amount + " euro = " + f.format(pound) + " Pound");
-
-               yen = amount * 127.32;
-               System.out.println(amount + " euro = " + f.format(yen) + " Yen");
-
-               ringgit = amount * 4.78;
-               System.out.println(amount + " euro = " + f.format(ringgit) + " ringgit");
-               break;
-
-            case 5: // Yen Conversion
-               rupee = amount * 0.63;
-               System.out.println(amount + " yen = " + f.format(rupee) + " Ruppes");
-
-               dollar = amount * 0.008;
-               System.out.println(amount + " yen = " + f.format(dollar) + " Dollar");
-
-               pound = amount * 0.007;
-               System.out.println(amount + " yen = " + f.format(pound) + " Pound");
-
-               euro = amount * 0.007;
-               System.out.println(amount + " yen = " + f.format(euro) + " Euro");
-
-               ringgit = amount * 0.037;
-               System.out.println(amount + " yen = " + f.format(ringgit) + " ringgit");
-               break;
-
-            case 6: // Ringgit Conversion
-               rupee = amount * 16.8;
-               System.out.println(amount + " ringgit = " + f.format(rupee) + " Ruppes");
-
-               dollar = amount * 0.239;
-               System.out.println(amount + " ringgit = " + f.format(dollar) + " dollar");
-
-               pound = amount * 0.188;
-               System.out.println(amount + " ringgit =: " + f.format(pound) + " pound");
-
-               euro = amount * 0.209;
-               System.out.println(amount + " ringgit = " + f.format(euro) + " euro");
-
-               yen = amount * 26.63;
-               System.out.println(amount + " ringgit = " + f.format(yen) + " yen");
-               break;
-
-            // Default case
-            default:
-               System.out.println("Invalid Input");
-         }
-      } finally {
-         // Ensure that the scanner is closed to prevent resource leaks
-         sc.close();
-      }
-   }
+    public static void main(String[] args) {
+        try (Scanner sc = new Scanner(System.in)) {
+            while (true) {
+                printMenu();
+                int choice = readChoice(sc);
+                if (choice == EXIT_CHOICE) {
+                    System.out.println("Goodbye!");
+                    break;
+                }
+                Currency from = currencyForChoice(choice);
+                try {
+                    double amount = readAmount(sc);
+                    printConversions(from, amount);
+                } catch (NoMoreInputException e) {
+                    System.out.println("\nNo input received. Goodbye!");
+                    break;
+                }
+            }
+        }
+    }
 }
